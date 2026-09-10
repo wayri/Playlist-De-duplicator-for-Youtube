@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest an improvement within duplicate playlist cleanup
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What duplicate-cleanup problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Why this fits the extension's single purpose
+    validations:
+      required: true
+  - type: dropdown
+    id: permission
+    attributes:
+      label: Does this appear to need new permissions or external services?
+      options:
+        - No
+        - Unsure
+        - Yes
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety/privacy considerations

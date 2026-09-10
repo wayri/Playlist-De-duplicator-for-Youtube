@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Playlist Deduper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brandmark" src="icons/icon48.png" alt="" aria-hidden="true" />
+        <div class="brandcopy">
+          <h1>Playlist Deduper</h1>
+          <p>Clean repeats without losing your place.</p>
+        </div>
+      </div>
+      <div class="privacyPill" title="No API key, no server upload">
+        <span class="privacyDot"></span> Local
+      </div>
+    </header>
+
+    <nav class="steps" aria-label="Cleanup progress">
+      <div id="stepScan" class="step active"><span>1</span><b>Scan</b></div>
+      <div class="stepLine"></div>
+      <div id="stepReview" class="step"><span>2</span><b>Review</b></div>
+      <div class="stepLine"></div>
+      <div id="stepClean" class="step"><span>3</span><b>Clean</b></div>
+    </nav>
+
+    <section id="pageState" class="notice neutral" aria-live="polite">
+      Open a YouTube™ playlist page to begin.
+    </section>
+
+    <button id="openPlaylistBtn" class="btn secondary hidden">Open dedicated playlist page</button>
+
+    <section class="scanCard">
+      <div class="scanCardHead">
+        <div>
+          <div class="eyebrow">CURRENT PLAYLIST</div>
+          <div id="playlistTitle" class="playlistTitle">Waiting for a playlist…</div>
+        </div>
+        <div id="scanStatusBadge" class="statusBadge">Not scanned</div>
+      </div>
+
+      <button id="loadScanBtn" class="btn primary scanPrimary">
+        <span class="btnIcon" aria-hidden="true">⌕</span>
+        <span><strong>Scan full playlist</strong><small>Loads the entire playlist and finds exact repeats</small></span>
+      </button>
+
+      <div class="scanSecondaryRow">
+        <button id="scanBtn" class="textAction">Quick scan loaded items</button>
+        <span class="mutedDot">•</span>
+        <span id="scanMeta" class="scanMeta">No scan yet</span>
+      </div>
+    </section>
+
+    <section id="stats" class="stats hidden" aria-label="Playlist scan summary">
+      <div class="stat">
+        <span id="totalCount" class="value">—</span>
+        <span class="label">videos</span>
+      </div>
+      <div class="stat">
+        <span id="uniqueCount" class="value">—</span>
+        <span class="label">unique</span>
+      </div>
+      <div class="stat accent">
+        <span id="duplicateCount" class="value">—</span>
+        <span class="label">extra copies</span>
+      </div>
+      <div class="stat">
+        <span id="groupCount" class="value">—</span>
+        <span class="label">repeat groups</span>
+      </div>
+    </section>
+
+    <section id="cleanState" class="cleanState hidden">
+      <div class="cleanIcon" aria-hidden="true">✓</div>
+      <div>
+        <strong>No duplicates found</strong>
+        <p>This playlist is already clean for the entries we scanned.</p>
+      </div>
+    </section>
+
+    <section id="tools" class="reviewPanel hidden" aria-label="Duplicate review tools">
+      <div class="sectionHead">
+        <div>
+          <div class="eyebrow">STEP 2 · REVIEW</div>
+          <h2>Choose what stays</h2>
+        </div>
+        <div id="selectedSummary" class="selectionPill">0 selected</div>
+      </div>
+
+      <div class="choiceRow">
+        <label class="field keepField">
+          <span>For every repeated video, keep</span>
+          <select id="keepMode">
+            <option value="first">First occurrence</option>
+            <option value="last">Last occurrence</option>
+          </select>
+        </label>
+        <label class="field sortField">
+          <span>Sort</span>
+          <select id="sortMode">
+            <option value="count">Most repeated</option>
+            <option value="position">Playlist order</option>
+            <option value="title">Title A–Z</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="searchField">
+        <span class="searchGlyph" aria-hidden="true">⌕</span>
+        <span class="srOnly">Filter duplicates</span>
+        <input id="filterInput" type="search" placeholder="Search duplicate videos…" autocomplete="off" />
+      </label>
+
+      <div class="listToolbar">
+        <span id="visibleSummary" class="subtle">Duplicate groups</span>
+        <div class="miniActions">
+          <button id="selectAllBtn" class="textBtn">Select all</button>
+          <span>·</span>
+          <button id="selectNoneBtn" class="textBtn">None</button>
+        </div>
+      </div>
+
+      <div id="duplicateList" class="duplicateList"></div>
+    </section>
+
+    <section id="diagnostics" class="diagnostics hidden"></section>
+
+    <section id="progressWrap" class="progressWrap hidden" aria-live="polite">
+      <div class="progressHeader">
+        <span id="progressText">Working…</span>
+        <button id="cancelBtn" class="textBtn dangerText">Stop</button>
+      </div>
+      <div class="progressTrack"><div id="progressBar" class="progressBar"></div></div>
+    </section>
+
+    <section id="cleanupPanel" class="cleanupPanel hidden">
+      <div class="cleanupHead">
+        <div>
+          <div class="eyebrow">STEP 3 · CLEAN</div>
+          <h2>Ready to clean</h2>
+        </div>
+        <div class="shield" aria-hidden="true">✓</div>
+      </div>
+
+      <div id="cleanupPreview" class="cleanupPreview">Select duplicate groups above.</div>
+      <div id="cleanupKeepNote" class="cleanupKeepNote"></div>
+
+      <label class="checkboxRow">
+        <input id="confirmCheck" type="checkbox" />
+        <span>I reviewed these duplicates and want to remove the extra copies.</span>
+      </label>
+
+      <button id="removeBtn" class="btn danger" disabled>Remove selected duplicates</button>
+      <p id="removeFineprint" class="fineprint">Only exact duplicate video IDs are removed.</p>
+    </section>
+
+    <details id="moreTools" class="moreTools hidden">
+      <summary>Reports &amp; advanced tools</summary>
+      <div class="moreToolsBody">
+        <p>Save a record before cleanup or inspect the scan outside the extension.</p>
+        <div class="reportActions">
+          <button id="copyBtn" class="smallBtn">Copy report</button>
+          <button id="exportBtn" class="smallBtn">Export CSV</button>
+        </div>
+      </div>
+    </details>
+
+    <footer>
+      <span id="version">v—</span>
+      <span>•</span>
+      <span>No API key</span>
+      <span>•</span>
+      <span>Nothing uploaded</span>
+    </footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

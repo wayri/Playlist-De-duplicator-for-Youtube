@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/wayri/Playlist-De-duplicator-for-Youtube/blob/main/docs/TROUBLESHOOTING.md
+    about: Check common fixes before opening a bug.

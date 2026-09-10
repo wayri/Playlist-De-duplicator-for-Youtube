@@ -1,0 +1,28 @@
+name: Validate extension
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate repository and extension
+        run: npm test
+      - name: Build release archives
+        run: ./scripts/package.sh
+      - name: Inspect release archives
+        run: |
+          unzip -l dist/playlist-deduper-for-youtube-v*-store.zip
+          unzip -Z1 dist/playlist-deduper-for-youtube-v*-store.zip | grep -qx manifest.json
+          unzip -Z1 dist/playlist-deduper-for-youtube-v*-offline.zip | grep -qx INSTALL.txt
+          unzip -Z1 dist/playlist-deduper-for-youtube-v*-offline.zip | grep -qx Playlist-Deduper-for-YouTube/manifest.json

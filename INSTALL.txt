@@ -1,0 +1,19 @@
+PLAYLIST DEDUPER FOR YOUTUBE™ — OFFLINE INSTALL
+
+1. Extract this ZIP to a permanent folder.
+2. In Chrome open: chrome://extensions
+3. Turn on Developer mode.
+4. Click "Load unpacked".
+5. Select the folder named "Playlist-Deduper-for-YouTube".
+   It must contain manifest.json directly inside it.
+6. Pin the extension from Chrome's Extensions menu.
+7. Open an editable YouTube playlist and click the extension.
+8. Use "Scan full playlist" first.
+
+Do not delete or move the extracted extension folder after installing it.
+
+Full guide:
+https://github.com/wayri/Playlist-De-duplicator-for-Youtube/blob/main/docs/INSTALLATION.md
+
+Project:
+https://github.com/wayri/Playlist-De-duplicator-for-Youtube
