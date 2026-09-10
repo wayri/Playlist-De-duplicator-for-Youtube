@@ -26,7 +26,7 @@ jobs:
         run: npm test
 
       - name: Build release archives
-        run: ./scripts/package.sh
+        run: bash ./scripts/package.sh
 
       - name: Resolve version
         id: version
