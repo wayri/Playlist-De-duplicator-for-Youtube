@@ -3,8 +3,9 @@
 
   const RENDERER = 'ytd-playlist-video-renderer';
   const state = {
-    cancelled: false,
+    operation: null,
     lastScan: null,
+    reviewSnapshot: null,
     playlistId: null
   };
 
@@ -28,7 +29,7 @@
     if (state.playlistId !== playlistId) {
       state.playlistId = playlistId;
       state.lastScan = null;
-      state.cancelled = false;
+      state.reviewSnapshot = null;
     }
   }
 
@@ -76,14 +77,62 @@
     };
   }
 
-  function collectRawEntries() {
-    return [...document.querySelectorAll(RENDERER)].map(rendererVideoInfo);
+  function rendererSnapshot() {
+    return [...document.querySelectorAll(RENDERER)].map((renderer, index) => ({
+      renderer,
+      videoId: rendererVideoInfo(renderer, index).videoId
+    }));
+  }
+
+  function sameSnapshot(expected) {
+    const actual = rendererSnapshot();
+    return actual.length === expected.length && actual.every((entry, index) =>
+      entry.renderer === expected[index].renderer && entry.videoId === expected[index].videoId);
+  }
+
+  function startOperation(kind) {
+    if (state.operation) throw new Error(`${state.operation.kind} is already in progress. Wait or cancel it first.`);
+    const operation = { kind, playlistId: pageContext().playlistId, cancelled: false, interrupted: false };
+    if (kind === 'remove') {
+      operation.onUserInput = event => {
+        if (event.isTrusted) operation.interrupted = true;
+      };
+      document.addEventListener('pointerdown', operation.onUserInput, true);
+      document.addEventListener('keydown', operation.onUserInput, true);
+    }
+    state.operation = operation;
+    return operation;
+  }
+
+  function checkOperation(operation) {
+    if (state.operation !== operation || operation.cancelled) throw new Error('Cancelled.');
+    if (operation.interrupted) throw new Error('User interaction changed the page during cleanup. Scan again.');
+    if (!pageContext().isPlaylistPage || pageContext().playlistId !== operation.playlistId) {
+      throw new Error('Playlist changed during the operation. Scan it again.');
+    }
+  }
+
+  async function runOperation(kind, task) {
+    const operation = startOperation(kind);
+    try {
+      checkOperation(operation);
+      return await task(operation);
+    } finally {
+      if (state.operation === operation) {
+        if (operation.onUserInput) {
+          document.removeEventListener('pointerdown', operation.onUserInput, true);
+          document.removeEventListener('keydown', operation.onUserInput, true);
+        }
+        state.operation = null;
+      }
+    }
   }
 
   function scanLoaded(scanMode = 'loaded') {
     ensurePlaylistState();
     const context = pageContext();
-    const rawEntries = collectRawEntries();
+    const renderers = [...document.querySelectorAll(RENDERER)];
+    const rawEntries = renderers.map(rendererVideoInfo);
     const entries = rawEntries.filter(item => Boolean(item.videoId));
     const skippedEntries = rawEntries.filter(item => !item.videoId);
     const byId = new Map();
@@ -120,10 +169,14 @@
       largestGroupCount: groups.reduce((max, group) => Math.max(max, group.count), 0),
       groups,
       scanMode,
+      scanToken: crypto.randomUUID(),
       scannedAt: Date.now()
     };
 
     state.lastScan = scan;
+    state.reviewSnapshot = renderers.map((renderer, index) => ({
+      renderer, videoId: rawEntries[index].videoId
+    }));
     return scan;
   }
 
@@ -135,14 +188,14 @@
     return document.scrollingElement || document.documentElement;
   }
 
-  async function loadAllPlaylistItems() {
-    state.cancelled = false;
+  async function loadAllPlaylistItems(operation) {
     let stableRounds = 0;
     let lastCount = -1;
     let rounds = 0;
     const scroller = getScrollContainer();
 
-    while (!state.cancelled && stableRounds < 4 && rounds < 180) {
+    while (stableRounds < 4 && rounds < 180) {
+      checkOperation(operation);
       rounds += 1;
       const count = document.querySelectorAll(RENDERER).length;
       notifyProgress({
@@ -158,19 +211,25 @@
 
       window.scrollTo({ top: scroller.scrollHeight, behavior: 'instant' });
       await sleep(stableRounds > 0 ? 800 : 500);
+      checkOperation(operation);
 
       if (document.querySelector(
         'ytd-continuation-item-renderer tp-yt-paper-spinner[active], ' +
         'ytd-continuation-item-renderer #spinner[active]'
       )) {
         await sleep(700);
+        checkOperation(operation);
         stableRounds = 0;
       }
     }
 
-    if (state.cancelled) throw new Error('Cancelled.');
+    checkOperation(operation);
     window.scrollTo({ top: 0, behavior: 'instant' });
     await sleep(250);
+    checkOperation(operation);
+    const unresolved = Boolean(document.querySelector('ytd-continuation-item-renderer'));
+    return rounds < 180 && !unresolved && stableRounds >= 4 &&
+      document.querySelectorAll(RENDERER).length === lastCount;
   }
 
   function findRenderersByVideoId(videoId) {
@@ -194,97 +253,121 @@
     return null;
   }
 
-  const REMOVE_PATTERNS = [
-    /^remove\s+from\b/i,
-    /^remove\s+from\s+playlist\b/i,
-    /^delete\s+from\b/i,
-    /^supprimer\s+de\b/i,
-    /^retirer\s+de\b/i,
-    /^entfernen\b/i,
-    /^aus\s+.*entfernen\b/i,
-    /^eliminar\s+de\b/i,
-    /^quitar\s+de\b/i,
-    /^rimuovi\s+da\b/i,
-    /^verwijderen\s+uit\b/i,
-    /^remover\s+de\b/i,
-    /^remova\s+de\b/i,
-    /^usuń\s+z\b/i,
-    /^удалить\s+из\b/i,
-    /^видалити\s+з\b/i,
-    /^xóa\s+khỏi\b/i,
-    /^hapus\s+dari\b/i,
-    /^kaldır/i,
-    /에서\s*삭제/i,
-    /から削除/i,
-    /从.*中移除/,
-    /從.*移除/,
-    /إزالة\s+من/,
-    /حذف\s+من/
-  ];
-
-  function isRemoveMenuItem(item) {
-    const text = (item.innerText || item.textContent || '').replace(/\s+/g, ' ').trim();
-    return REMOVE_PATTERNS.some(pattern => pattern.test(text));
+  function visibleMenuPopups() {
+    return [...document.querySelectorAll('ytd-menu-popup-renderer')].filter(popup => {
+      const rect = popup.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && !popup.closest('[aria-hidden="true"]');
+    });
   }
 
-  async function openMenuAndFindRemove(renderer) {
+  function closeMenu() {
+    document.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Escape', code: 'Escape', bubbles: true
+    }));
+  }
+
+  const RESERVED_REMOVE_TARGETS = new Set(['watch later', 'liked videos']);
+
+  function isExactPlaylistRemove(item, playlistTitle) {
+    const text = (item.innerText || item.textContent || '').replace(/\s+/g, ' ').trim();
+    const title = playlistTitle.replace(/\s+/g, ' ').trim();
+    return text === 'Remove from playlist' ||
+      (title && !RESERVED_REMOVE_TARGETS.has(title.toLowerCase()) && text === `Remove from ${title}`);
+  }
+
+  function menuBelongsToButton(popup, button) {
+    const controlledId = button.getAttribute?.('aria-controls');
+    if (!controlledId) return true;
+    const controlled = document.getElementById(controlledId);
+    return Boolean(controlled && (controlled === popup || controlled.contains(popup)));
+  }
+
+  async function openMenuAndFindRemove(renderer, operation, playlistTitle) {
+    if (visibleMenuPopups().length) throw new Error('Another YouTube menu is open. Close it and scan again.');
     renderer.scrollIntoView({ block: 'center', behavior: 'instant' });
     await sleep(120);
+    checkOperation(operation);
     const menuButton = findActionMenuButton(renderer);
     if (!menuButton) throw new Error('Could not find the playlist item action menu.');
 
     menuButton.click();
     await sleep(350);
-
-    const menuItems = [...document.querySelectorAll(
-      'ytd-menu-popup-renderer ytd-menu-service-item-renderer, ' +
-      'tp-yt-iron-dropdown ytd-menu-service-item-renderer, ' +
-      'ytd-popup-container ytd-menu-service-item-renderer'
-    )].filter(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    });
-
-    const removeItem = menuItems.find(isRemoveMenuItem);
-    if (!removeItem) {
-      document.dispatchEvent(new KeyboardEvent('keydown', {
-        key: 'Escape',
-        code: 'Escape',
-        bubbles: true
-      }));
-      await sleep(100);
-      throw new Error('Could not safely identify the “Remove from playlist” action in this YouTube language/layout.');
+    try { checkOperation(operation); }
+    catch (err) { closeMenu(); throw err; }
+    const popups = visibleMenuPopups();
+    if (popups.length !== 1) {
+      closeMenu();
+      throw new Error('Could not isolate the playlist item menu.');
     }
-    return removeItem;
+    if (!menuBelongsToButton(popups[0], menuButton)) {
+      closeMenu();
+      throw new Error('The visible menu does not belong to the reviewed playlist entry.');
+    }
+    const menuItems = [...popups[0].querySelectorAll('ytd-menu-service-item-renderer')]
+      .filter(item => {
+        const rect = item.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+    const matches = menuItems.filter(item => isExactPlaylistRemove(item, playlistTitle));
+    if (matches.length !== 1) {
+      closeMenu();
+      throw new Error('Could not uniquely identify the English “Remove from playlist” action for this playlist.');
+    }
+    return { removeItem: matches[0], popup: popups[0], menuButton };
   }
 
-  async function removeOneCopy(videoId, keepMode) {
+  async function removeOneCopy(videoId, survivor, keepMode, operation, expectedSnapshot, playlistTitle) {
+    checkOperation(operation);
+    if (!sameSnapshot(expectedSnapshot)) throw new Error('Playlist entries changed since review. Scan again.');
     const renderers = findRenderersByVideoId(videoId);
-    if (renderers.length < 2) return { removed: false, reason: 'No duplicate remains.' };
+    if (renderers.length < 2 || !renderers.includes(survivor)) {
+      throw new Error('The reviewed survivor is no longer present. Scan again.');
+    }
 
     // To preserve the first occurrence, delete from the end. To preserve the last,
     // repeatedly delete from the beginning until only the original last copy remains.
     const target = keepMode === 'last' ? renderers[0] : renderers[renderers.length - 1];
-    const removeItem = await openMenuAndFindRemove(target);
-    const beforeCount = findRenderersByVideoId(videoId).length;
+    if (target === survivor) throw new Error('Refusing to remove the survivor.');
+    const targetIndex = [...document.querySelectorAll(RENDERER)].indexOf(target);
+    const { removeItem, popup, menuButton } = await openMenuAndFindRemove(target, operation, playlistTitle);
+    try { checkOperation(operation); }
+    catch (err) { closeMenu(); throw err; }
+    const before = findRenderersByVideoId(videoId);
+    if (before.length < 2 || !before.includes(target) || !before.includes(survivor) ||
+        target === survivor || !sameSnapshot(expectedSnapshot) ||
+        [...document.querySelectorAll(RENDERER)].indexOf(target) !== targetIndex ||
+        visibleMenuPopups().length !== 1 || visibleMenuPopups()[0] !== popup ||
+        !menuBelongsToButton(popup, menuButton) || !removeItem.getBoundingClientRect().width) {
+      closeMenu();
+      throw new Error('Playlist or menu changed before removal. Scan again.');
+    }
+    const beforeCount = before.length;
     removeItem.click();
 
     const deadline = Date.now() + 4500;
     while (Date.now() < deadline) {
       await sleep(180);
       const afterCount = findRenderersByVideoId(videoId).length;
-      if (afterCount < beforeCount) return { removed: true };
+      if (afterCount === beforeCount - 1) {
+        expectedSnapshot.splice(targetIndex, 1);
+        if (!sameSnapshot(expectedSnapshot) || !findRenderersByVideoId(videoId).includes(survivor)) {
+          throw new Error('Playlist changed unexpectedly after removal. Scan again.');
+        }
+        return { removed: true };
+      }
+      if (afterCount < beforeCount - 1) throw new Error('More than one copy disappeared. Stop and scan again.');
     }
     return { removed: false, reason: 'YouTube did not confirm the item removal.' };
   }
 
-  async function removeDuplicates(options = {}) {
-    state.cancelled = false;
-    const initial = scanLoaded('loaded');
-    if (!initial.duplicateCount) {
-      return { removed: 0, failed: 0, failures: [], requested: 0, scan: initial };
+  async function removeDuplicates(options, operation) {
+    const initial = state.lastScan;
+    if (!initial || !options.scanToken || options.scanToken !== initial.scanToken ||
+        options.playlistId !== initial.playlistId || operation.playlistId !== initial.playlistId ||
+        !state.reviewSnapshot || !sameSnapshot(state.reviewSnapshot)) {
+      throw new Error('Reviewed scan is stale or belongs to another playlist. Scan again.');
     }
-
+    const expectedSnapshot = [...state.reviewSnapshot];
     const keepMode = options.keep === 'last' ? 'last' : 'first';
     const requestedIds = Array.isArray(options.videoIds) ? options.videoIds.filter(Boolean) : [];
     if (!requestedIds.length) {
@@ -293,6 +376,7 @@
 
     const selectedSet = new Set(requestedIds);
     const groups = initial.groups.filter(group => selectedSet.has(group.videoId));
+    if (groups.length !== selectedSet.size) throw new Error('Selection differs from the reviewed scan. Scan again.');
     const total = groups.reduce((sum, group) => sum + group.count - 1, 0);
 
     if (!total) {
@@ -302,9 +386,14 @@
     let removed = 0;
     let failed = 0;
     const failures = [];
+    const survivors = new Map(groups.map(group => {
+      const copies = findRenderersByVideoId(group.videoId);
+      return [group.videoId, keepMode === 'last' ? copies[copies.length - 1] : copies[0]];
+    }));
+    const playlistTitle = initial.playlistTitle;
 
     for (const group of groups) {
-      while (!state.cancelled && findRenderersByVideoId(group.videoId).length > 1) {
+      while (!operation.cancelled && findRenderersByVideoId(group.videoId).length > 1) {
         notifyProgress({
           phase: 'removing',
           current: removed + failed,
@@ -313,7 +402,8 @@
         });
 
         try {
-          const result = await removeOneCopy(group.videoId, keepMode);
+          const result = await removeOneCopy(group.videoId, survivors.get(group.videoId), keepMode,
+            operation, expectedSnapshot, playlistTitle);
           if (result.removed) {
             removed += 1;
           } else {
@@ -330,7 +420,7 @@
 
         await sleep(650);
       }
-      if (state.cancelled) break;
+      if (operation.cancelled || failed) break;
     }
 
     const scan = scanLoaded('loaded');
@@ -338,7 +428,7 @@
       phase: 'done',
       current: Math.min(total, removed + failed),
       total,
-      text: state.cancelled ? 'Stopped.' : 'Finished.'
+      text: operation.cancelled || failed ? 'Stopped.' : 'Finished.'
     });
 
     return {
@@ -347,7 +437,7 @@
       failures,
       requested: total,
       scan,
-      cancelled: state.cancelled,
+      cancelled: operation.cancelled,
       keepMode
     };
   }
@@ -366,21 +456,27 @@
       sendResponse({
         ...context,
         playlistTitle: context.playlistId ? getPlaylistTitle() : '',
-        lastScan: state.lastScan
+        lastScan: state.lastScan,
+        operation: state.operation ? {
+          kind: state.operation.kind,
+          cancelled: state.operation.cancelled
+        } : null
       });
       return;
     }
 
     if (message.type === 'YTPD_CANCEL') {
-      state.cancelled = true;
-      sendResponse({ ok: true });
+      if (state.operation) state.operation.cancelled = true;
+      sendResponse({ ok: true, active: Boolean(state.operation) });
       return;
     }
 
     if (message.type === 'YTPD_SCAN') {
       try {
         if (!pageContext().isPlaylistPage) throw new Error('Open the dedicated YouTube playlist page first.');
-        sendResponse({ ok: true, scan: scanLoaded('loaded') });
+        const operation = startOperation('scan');
+        try { sendResponse({ ok: true, scan: scanLoaded('loaded') }); }
+        finally { if (state.operation === operation) state.operation = null; }
       } catch (err) {
         sendResponse({ ok: false, error: err.message });
       }
@@ -391,8 +487,11 @@
       (async () => {
         try {
           if (!pageContext().isPlaylistPage) throw new Error('Open the dedicated YouTube playlist page first.');
-          await loadAllPlaylistItems();
-          sendResponse({ ok: true, scan: scanLoaded('full') });
+          const scan = await runOperation('load', async operation => {
+            const complete = await loadAllPlaylistItems(operation);
+            return scanLoaded(complete ? 'full' : 'loaded');
+          });
+          sendResponse({ ok: true, scan });
         } catch (err) {
           sendResponse({ ok: false, error: err.message });
         }
@@ -404,10 +503,12 @@
       (async () => {
         try {
           if (!pageContext().isPlaylistPage) throw new Error('Open the dedicated YouTube playlist page first.');
-          const result = await removeDuplicates({
+          const result = await runOperation('remove', operation => removeDuplicates({
             videoIds: message.videoIds,
-            keep: message.keep
-          });
+            keep: message.keep,
+            scanToken: message.scanToken,
+            playlistId: message.playlistId
+          }, operation));
           sendResponse({ ok: true, ...result });
         } catch (err) {
           sendResponse({ ok: false, error: err.message });

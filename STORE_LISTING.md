@@ -1,4 +1,4 @@
-# Chrome Web Store Listing Draft — v1.3.0
+# Chrome Web Store Listing Draft — v1.3.1
 
 ## Item title
 
@@ -10,7 +10,9 @@ Find, review, and safely remove exact duplicate videos from YouTube™ playlists
 
 ## Suggested category
 
-**Productivity**
+**Tools**
+
+Language: **English**. Submission status: **draft saved, not submitted**. Item ID: `gljlcpejifgfjkehhebekclcgoemggna`.
 
 ## Detailed description
 
@@ -22,7 +24,7 @@ Playlist Deduper scans the playlist already open in your browser, groups repeate
 
 **Scan → Review → Clean**
 
-- Full-playlist lazy loading for long playlists.
+- Lazy-loading scan for long playlists; incomplete scans are labelled partial.
 - Exact duplicate detection by video ID, not fuzzy title matching.
 - Duplicate positions shown before cleanup.
 - Select or exclude individual duplicate groups.
@@ -40,14 +42,14 @@ Playlist Deduper scans the playlist already open in your browser, groups repeate
 - No analytics, ads, telemetry, or developer backend.
 - No playlist-data upload.
 - Playlist content is processed locally in the user-invoked tab.
-- Only UI preferences are stored locally.
+- Only UI preferences are stored in extension storage; reports and CSV files are created locally when requested.
 - No persistent YouTube host permission.
 
 ### Safety
 
 Cleanup is deliberately explicit. You review/select duplicate groups, choose which occurrence to keep, see the exact number of entries that will be removed, and confirm before cleanup.
 
-If the extension cannot safely recognize YouTube's visible “Remove from playlist” command in the current interface/language, it does not guess another menu action.
+If the extension cannot safely recognize YouTube's visible “Remove from playlist” command in the current English interface, it does not guess another menu action.
 
 ### Limitations
 
@@ -73,7 +75,7 @@ YouTube is a trademark of Google LLC.
 
 ### `storage`
 
-> Stores only local extension UI preferences such as keep-first/keep-last and duplicate-list sort order. Playlist content and scan results are not persistently stored.
+> Stores only local extension UI preferences such as keep-first/keep-last and duplicate-list sort order. Playlist content and scan results are not persistently stored in extension storage. A user-requested report may be copied to the clipboard or saved as a CSV file.
 
 ### Remote code
 
@@ -89,6 +91,12 @@ The extension locally processes website content required for its single purpose.
 
 ## URLs
 
-- Homepage/source: `https://github.com/wayri/playlist-deduper-for-youtube`
-- Support: `https://github.com/wayri/playlist-deduper-for-youtube/issues`
-- Privacy policy: publish a stable public HTTPS rendering of `PRIVACY_POLICY.md` and enter that final URL in the Dashboard.
+- Homepage/source: `https://github.com/wayri/Playlist-De-duplicator-for-Youtube`
+- Support: `https://github.com/wayri/Playlist-De-duplicator-for-Youtube/issues`
+- Privacy policy: `https://github.com/wayri/Playlist-De-duplicator-for-Youtube/blob/release/v1.3.1/PRIVACY_POLICY.md`
+
+## Saved Dashboard data categories
+
+“Website content” and “Web history” are checked to disclose local handling of playlist text/links and the current invoked URL/title. No Chrome history API, cross-site visit history, telemetry, or upload is used. Pointer/keyboard events serve only as a cleanup interruption signal; their contents are not recorded. Other data categories are unchecked. All three limited-use certifications reflect the current source. The policy link currently targets the candidate branch; switch it to `main` after merge.
+
+[Open the saved Store draft](https://chrome.google.com/webstore/devconsole/caed2996-856b-4563-92db-e9ed1ff21551/gljlcpejifgfjkehhebekclcgoemggna/edit). This is a publisher dashboard link, not a public installation URL. No live listing URL has been confirmed.

@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const exists = (p) => fs.existsSync(path.join(root, p));
 const fail = (msg) => { console.error(`✗ ${msg}`); process.exitCode = 1; };
@@ -45,5 +46,8 @@ for (const js of ['popup.js', 'content.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, js)], { encoding: 'utf8' });
   if (result.status === 0) ok(`${js} syntax`); else fail(`${js} syntax: ${result.stderr.trim()}`);
 }
+
+const packageVersion = JSON.parse(read('package.json')).version;
+if (packageVersion === manifest.version) ok('package and manifest versions match'); else fail('package and manifest versions differ');
 
 if (!process.exitCode) console.log('\nValidation passed.');

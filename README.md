@@ -2,7 +2,7 @@
 
 A privacy-first Chrome/Chromium extension for finding, reviewing, and safely removing **exact duplicate video entries** from editable YouTube playlists.
 
-> **Status:** v1.3.0 · Manifest V3 · source-available for non-commercial use
+> **Status:** v1.3.1 release candidate · live Chrome regression pending · Manifest V3 · source-available for non-commercial use
 
 ## Why this exists
 
@@ -17,7 +17,7 @@ It matches duplicates by **YouTube video ID**, shows their playlist positions, l
 ## Highlights
 
 - Exact duplicate detection by **video ID**, never fuzzy title matching.
-- Full-playlist lazy loading for long playlists.
+- Lazy-loading scan for long playlists; incomplete scans are labelled partial.
 - Fast scan of entries already loaded in the page.
 - Duplicate groups with exact **playlist positions**.
 - Selective cleanup: clean all groups or only the ones you choose.
@@ -33,15 +33,19 @@ It matches duplicates by **YouTube video ID**, shows their playlist positions, l
 
 ## Get it
 
-**Recommended GitHub install:** download the latest `*-offline.zip` from [GitHub Releases](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/latest), extract it, then load the included extension folder from `chrome://extensions`.
+**Candidate downloads (available publicly after publication):** [v1.3.1 offline ZIP](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/download/v1.3.1/playlist-deduper-for-youtube-v1.3.1-offline.zip) — extract it and load the included `Playlist-Deduper-for-YouTube` folder from `chrome://extensions`. The [Store ZIP](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/download/v1.3.1/playlist-deduper-for-youtube-v1.3.1-store.zip) and [source ZIP](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/download/v1.3.1/playlist-deduper-for-youtube-v1.3.1-source.zip) will be attached alongside SHA-256 checksums. Until the live regression gate passes, v1.3.1 remains a draft. The [latest published baseline is v1.3.0](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/tag/v1.3.0).
 
 [Full installation, update, and uninstall guide](docs/INSTALLATION.md) · [User guide](docs/USER_GUIDE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
-> Chrome Web Store distribution is the next release step. Until it is approved, the GitHub offline package uses Chrome's standard **Load unpacked** flow.
+> Chrome Web Store submission is pending. Until it is approved, the GitHub offline package uses Chrome's standard **Load unpacked** flow.
 
 ## Screenshots
 
-Screenshots will be added from the live v1.3.0 build before Chrome Web Store submission. See [`store-assets/README.md`](store-assets/README.md) for the capture plan.
+Actual extension UI with a local test playlist fixture; not a live account capture.
+
+![Scan](store-assets/screenshots/01-scan.png)
+![Review](store-assets/screenshots/02-review.png)
+![Cleanup](store-assets/screenshots/03-cleanup.png)
 
 ## Install locally
 
@@ -52,7 +56,7 @@ Screenshots will be added from the live v1.3.0 build before Chrome Web Store sub
 3. Open `chrome://extensions`.
 4. Enable **Developer mode**.
 5. Click **Load unpacked**.
-6. Select the folder containing `manifest.json`.
+6. Select the extracted `Playlist-Deduper-for-YouTube` folder containing `manifest.json`.
 7. Pin **Playlist Deduper** from Chrome's extensions menu.
 8. Open a YouTube playlist you can edit and click the extension.
 
@@ -85,9 +89,9 @@ For a detailed walkthrough, see [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md). For 
 
 The extension does **not** call a private YouTube deletion endpoint. It operates the visible playlist-item menu in the currently open page.
 
-Before clicking a destructive menu command, it checks the visible command text against a conservative set of known “remove from playlist” patterns. If the command cannot be recognized confidently, the extension closes/abandons that action and reports a failure instead of guessing.
+Cleanup is bound to the reviewed playlist and scan snapshot. Operations are locked while active; stale context, a changed survivor, or an ambiguous menu causes cleanup to stop. Before clicking a destructive menu command, it accepts only the English exact commands “Remove from playlist” or “Remove from <current playlist title>”. If the command cannot be recognized confidently, the extension closes/abandons that action and reports a failure instead of guessing.
 
-This makes cleanup intentionally slower than aggressive automation, but substantially safer.
+Full scans rely on page loading heuristics and may be incomplete; review any partial-scan warning. Current live Chrome regression testing remains pending; see [release evidence](docs/releases/v1.3.1-evidence.md).
 
 Read the full model in [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md).
 

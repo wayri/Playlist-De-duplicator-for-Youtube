@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 — 2026-11-01
+
+- Bind cleanup to the reviewed playlist and scan snapshot, lock concurrent operations, and refuse stale or ambiguous destructive actions.
+- Restrict removal-menu matching to exact English commands; report incomplete scans.
+- Neutralize spreadsheet formulas in CSV export. Live Chrome regression testing is pending.
+
 ## 1.3.0 — 2026-09-06
 
 - Added comprehensive GitHub repository documentation, contributor/security/support policies, CI validation, issue/PR templates, release packaging scripts, offline installation guide, and automated GitHub Release packaging.
