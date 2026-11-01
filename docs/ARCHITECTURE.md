@@ -152,14 +152,14 @@ for every other matching renderer:
     find its action-menu button
     open menu
     enumerate visible menu-service items
-    find a conservative text match for “Remove from …”
+    require one exact English current-playlist removal command
     if no confident match: abort that action
     click match
     wait
     verify renderer count decreased
 ```
 
-The implementation re-queries matching renderers as the DOM changes instead of trusting stale element references for an entire group.
+A cleanup request includes the reviewed scan token and playlist ID. The helper holds a tab-owned operation lock, records renderer identities and video IDs in order, fixes a survivor for every selected group, and revalidates them before each click. Trusted pointer or keyboard activity interrupts cleanup. Existing or ambiguous menus are rejected; popup identity and available aria-controls ownership are checked. Without aria-controls, association still depends on timing and absence of intervening interaction, and requires live compatibility testing. The expected snapshot is advanced only after one verified target removal. A changed snapshot or first failure stops further actions. Reopening the popup retrieves operation status and exposes Stop.
 
 ## Message protocol
 

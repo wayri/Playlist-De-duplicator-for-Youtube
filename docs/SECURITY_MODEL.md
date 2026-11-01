@@ -37,7 +37,7 @@ This extension performs destructive actions on user-managed playlists, so “sec
 
 **Risk:** a menu entry such as save, share, move, or another future action is activated.
 
-**Mitigation:** visible menu items are searched by conservative text patterns for removal. The code does not use a hard-coded item index. Failure to recognize the command aborts that action.
+**Mitigation:** a single visible menu must contain one exact English current-playlist removal command. Reserved built-in playlist-title collisions are rejected. Trusted pointer or keyboard activity interrupts cleanup; popup identity and available aria-controls ownership are rechecked. Layouts without aria-controls still rely on timing and require live validation. The code does not use a hard-coded item index. Failure to recognize the command aborts that action.
 
 ### Every copy removed
 
@@ -49,7 +49,7 @@ This extension performs destructive actions on user-managed playlists, so “sec
 
 **Risk:** stale positions/elements cause wrong operations.
 
-**Mitigation:** removal re-queries renderers by exact video ID while the DOM changes, and each click is verified by a renderer-count reduction.
+**Mitigation:** cleanup is bound to a reviewed scan token and playlist ID, serialized by a tab-owned operation lock, and checks renderer identities/order and a fixed survivor immediately before each click. Each successful action must remove exactly one expected renderer; any unexpected change or first failure stops further cleanup.
 
 ### Accidental click
 

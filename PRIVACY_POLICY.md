@@ -1,6 +1,6 @@
 # Privacy Policy — Playlist Deduper for YouTube™
 
-**Effective date:** 4 September 2026
+**Effective date:** 1 November 2026
 
 Playlist Deduper for YouTube™ is designed to process playlist information locally in the browser while minimizing permissions and persistent data.
 
@@ -26,7 +26,7 @@ The extension stores only local user-interface preferences, currently:
 
 These preferences are stored using Chrome's local extension storage on the user's device.
 
-Playlist contents and scan results are not persistently stored by the extension.
+Playlist contents and scan results are not persistently stored in extension storage. If requested, a report is copied to the clipboard or a CSV is saved as a user-controlled file.
 
 ## Data transmitted or shared
 
@@ -54,9 +54,13 @@ The extension does not request a persistent YouTube host permission.
 
 The extension does not sell user data and does not use playlist/page data for advertising, behavioral profiling, creditworthiness, or purposes unrelated to duplicate playlist cleanup.
 
+## Limited use and Store disclosures
+
+Use of page data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements. Data is used only for the visible duplicate-cleanup features described here. The Store categories “Website content” and “Web history” describe locally processed playlist text, links, and the current invoked page URL/title. The extension does not read Chrome browsing history or track visits across sites. Trusted pointer/keyboard events only interrupt an in-progress cleanup; their contents are not recorded.
+
 ## Retention and deletion
 
-The only persistent data created by the extension is the local UI preference record described above. It can be removed by uninstalling the extension or clearing the extension's local storage.
+The extension retains its local UI preference record until it is removed by uninstalling the extension or clearing its local storage. User-requested CSV files and clipboard contents are controlled separately by the user.
 
 ## Changes to this policy
 
@@ -66,7 +70,7 @@ If data handling changes, this policy and applicable Chrome Web Store disclosure
 
 Support and privacy questions can be raised through the project's GitHub repository at:
 
-<https://github.com/wayri/playlist-deduper-for-youtube>
+<https://github.com/wayri/Playlist-De-duplicator-for-Youtube/issues>
 
 Do not post sensitive account information, cookies, tokens, or private playlist details in a public issue.
 

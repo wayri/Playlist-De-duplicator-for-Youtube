@@ -10,19 +10,18 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate repository and extension
+      - name: Validate and test behavior
         run: npm test
       - name: Build release archives
-        run: ./scripts/package.sh
-      - name: Inspect release archives
-        run: |
-          unzip -l dist/playlist-deduper-for-youtube-v*-store.zip
-          unzip -Z1 dist/playlist-deduper-for-youtube-v*-store.zip | grep -qx manifest.json
-          unzip -Z1 dist/playlist-deduper-for-youtube-v*-offline.zip | grep -qx INSTALL.txt
-          unzip -Z1 dist/playlist-deduper-for-youtube-v*-offline.zip | grep -qx Playlist-Deduper-for-YouTube/manifest.json
+        run: node scripts/package.mjs
+      - name: Independently inspect archives
+        run: python scripts/check-archives.py

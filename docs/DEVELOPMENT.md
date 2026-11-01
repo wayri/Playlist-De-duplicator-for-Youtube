@@ -11,8 +11,8 @@ No npm dependencies are required.
 ## Clone and load
 
 ```bash
-git clone https://github.com/wayri/playlist-deduper-for-youtube.git
-cd playlist-deduper-for-youtube
+git clone https://github.com/wayri/Playlist-De-duplicator-for-Youtube.git
+cd Playlist-De-duplicator-for-Youtube
 npm test
 ```
 

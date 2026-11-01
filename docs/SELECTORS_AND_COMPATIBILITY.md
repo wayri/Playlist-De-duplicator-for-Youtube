@@ -36,7 +36,7 @@ The important invariant is that menu discovery is scoped to the target playlist 
 
 After opening a renderer menu, the helper enumerates visible `ytd-menu-service-item-renderer` elements within known popup/dropdown containers.
 
-It then checks normalized visible text against a conservative list of anchored patterns for languages explicitly represented in the code.
+It then checks normalized visible text against the exact English commands “Remove from playlist” and “Remove from <current playlist title>”. Ambiguous matches are refused.
 
 ## Rules for adding a language
 

@@ -47,6 +47,7 @@ let currentState = null;
 let lastScan = null;
 let working = false;
 let selectedIds = new Set();
+let busyPoll = null;
 
 function setNotice(text, kind = 'neutral') {
   els.pageState.textContent = text;
@@ -251,7 +252,7 @@ function renderDuplicateList() {
 }
 
 function renderScanMeta(scan) {
-  const modeText = scan.scanMode === 'full' ? 'Full scan' : 'Quick scan';
+  const modeText = scan.scanMode === 'full' ? 'Full scan' : 'Partial scan';
   const largest = scan.largestGroupCount > 1 ? ` · max ${scan.largestGroupCount}×` : '';
   els.scanMeta.textContent = `${modeText} · ${scan.identifiedCount} identified${largest}`;
   els.scanStatusBadge.textContent = scan.scanMode === 'full' ? 'Full scan complete' : 'Partial scan';
@@ -395,9 +396,37 @@ async function initialize() {
 
     setNotice('Ready. A full scan is recommended before removing anything.', 'ok');
     if (currentState.lastScan) renderScan(currentState.lastScan);
+    if (currentState.operation) showActiveOperation(currentState.operation);
   } catch (err) {
     setNotice('Reload the YouTube™ tab once after installing or updating the extension, then reopen it.', 'error');
   }
+}
+
+function showActiveOperation(operation) {
+  const label = operation.kind === 'remove' ? 'Cleanup' : operation.kind === 'load' ? 'Full scan' : 'Scan';
+  setWorking(true, `${label} is running in this tab…`);
+  els.scanStatusBadge.textContent = 'Working…';
+  els.scanStatusBadge.className = 'statusBadge warn';
+  setNotice(operation.cancelled ? 'Stop requested. Waiting for the current action.' :
+    `${label} is running. You can stop it here.`, 'warn');
+  if (busyPoll) clearTimeout(busyPoll);
+  busyPoll = setTimeout(async () => {
+    try {
+      const state = await send({ type: 'YTPD_GET_STATE' });
+      if (state.operation) {
+        showActiveOperation(state.operation);
+      } else {
+        currentState = state;
+        renderScan(state.lastScan);
+        setWorking(false);
+        setNotice(operation.cancelled ? 'Operation stopped. Run a scan before continuing.' :
+          'Operation finished. Review the current scan before continuing.', 'neutral');
+      }
+    } catch (err) {
+      setWorking(false);
+      setNotice(err.message || 'Could not check the operation. Reopen the popup.', 'error');
+    }
+  }, 900);
 }
 
 async function runScan(loadAll) {
@@ -442,7 +471,8 @@ function reportLines() {
 }
 
 function csvEscape(value) {
-  const string = String(value ?? '');
+  const raw = String(value ?? '');
+  const string = /^[\s\uFEFF]*[=+\-@]/u.test(raw) ? `'${raw}` : raw;
   return `"${string.replace(/"/g, '""')}"`;
 }
 
@@ -539,7 +569,9 @@ els.removeBtn.addEventListener('click', async () => {
     const result = await send({
       type: 'YTPD_REMOVE_DUPLICATES',
       videoIds: [...selectedIds],
-      keep: els.keepMode.value
+      keep: els.keepMode.value,
+      scanToken: lastScan.scanToken,
+      playlistId: lastScan.playlistId
     });
     if (!result?.ok) throw new Error(result?.error || 'Removal failed.');
 

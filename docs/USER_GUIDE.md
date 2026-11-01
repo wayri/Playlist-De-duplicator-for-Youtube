@@ -22,7 +22,7 @@ If you open the extension while watching a video with a `list=` parameter, it of
 
 Recommended before cleanup. The extension scrolls the page to trigger YouTube's lazy loading until the visible playlist item count stabilizes, then scans the loaded renderers.
 
-Use this for long playlists.
+Use this for long playlists. Completion is heuristic: loading caps or continuation indicators can yield a partial scan, and stabilization alone does not prove every item loaded.
 
 ### Scan loaded
 
@@ -90,7 +90,7 @@ For each selected duplicate group, the page helper:
 7. waits for YouTube to update the page; and
 8. verifies the number of matching renderers decreased.
 
-If it cannot identify the intended menu command, it records a failure and does not guess.
+Cleanup is bound to the reviewed playlist and scan snapshot. It stops on stale context, changed survivor or ambiguous menu. Only the exact English commands “Remove from playlist” and “Remove from <current playlist title>” are recognized.
 
 ## 9. Stop/cancel
 
@@ -110,7 +110,7 @@ Copies a readable summary containing playlist metadata, duplicate counts, select
 
 ### CSV export
 
-Creates a CSV locally through a browser Blob/download link. The extension does not request the Chrome `downloads` permission and does not send the report anywhere.
+Creates a CSV locally through a browser Blob/download link. The extension does not request the Chrome `downloads` permission and does not send the report anywhere. Formula-like cells are neutralized for spreadsheet safety.
 
 ## 12. After cleanup
 

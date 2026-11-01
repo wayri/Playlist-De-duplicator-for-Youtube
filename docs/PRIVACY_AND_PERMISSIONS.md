@@ -34,7 +34,7 @@ This data is used to implement the extension's disclosed purpose.
 
 Playlist scans are held only in extension/tab memory for the active session. They are not written to Chrome storage by the extension.
 
-Only UI preferences are persistently stored.
+Only UI preferences are persistently stored in extension storage. When requested, reports can also be copied to the clipboard or saved as CSV files under the user's control.
 
 ## What is transmitted
 

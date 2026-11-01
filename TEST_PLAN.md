@@ -1,4 +1,4 @@
-# Test Plan — Playlist Deduper v1.3.0
+# Test Plan — Playlist Deduper v1.3.1
 
 Complete this checklist on the exact release commit before Chrome Web Store submission.
 
@@ -35,6 +35,7 @@ Complete this checklist on the exact release commit before Chrome Web Store subm
 - [ ] Full scan lazy-loads a long playlist.
 - [ ] Full scan returns viewport to top.
 - [ ] Stop during loading exits cleanly.
+- [ ] A scan hitting its loading cap or seeing continuation is labelled partial.
 
 ## D. Review UI
 
@@ -61,6 +62,7 @@ Complete this checklist on the exact release commit before Chrome Web Store subm
 - [ ] Copy report contains playlist metadata, counts, selection state, positions, IDs, URLs.
 - [ ] CSV exports without `downloads` permission.
 - [ ] CSV quotes commas and double quotes correctly.
+- [ ] Formula-like CSV fields are neutralized before opening in a spreadsheet.
 - [ ] Exported filename is safe on Windows/macOS/Linux.
 - [ ] No report is transmitted externally by the extension.
 
@@ -79,6 +81,10 @@ Complete this checklist on the exact release commit before Chrome Web Store subm
 - [ ] Stop prevents additional groups/actions from starting.
 - [ ] Final scan reflects remaining duplicates.
 - [ ] No fixed menu-index behavior exists.
+- [ ] Navigating to a different playlist after review blocks cleanup.
+- [ ] Changing the reviewed snapshot or survivor blocks cleanup.
+- [ ] Concurrent operations are locked; reopening the popup offers stop for an active operation.
+- [ ] Ambiguous or non-English menu actions are not clicked; both supported exact English commands are checked on a disposable playlist.
 
 ## G. Store/security/privacy
 

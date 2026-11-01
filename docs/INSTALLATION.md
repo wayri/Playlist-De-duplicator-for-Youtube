@@ -2,7 +2,9 @@
 
 Playlist Deduper for YouTube™ currently ships as an offline Chromium extension package. Chrome Web Store installation will be added after the Store listing is approved.
 
-## Recommended: install the GitHub release
+The next candidate is v1.3.1. It remains a draft until the [live regression gate](releases/v1.3.1-evidence.md) passes; candidate download links are not public release links yet. The latest published baseline is [v1.3.0](https://github.com/wayri/Playlist-De-duplicator-for-Youtube/releases/tag/v1.3.0).
+
+## Recommended: install a published GitHub release
 
 ### 1. Download
 
@@ -94,6 +96,7 @@ To update safely:
 5. Open `chrome://extensions`.
 6. Find Playlist Deduper and click the **Reload** button on its card.
 7. Confirm the displayed version matches the release you downloaded.
+8. Refresh any open YouTube playlist tab, then reopen the popup and scan again. This clears the older injected helper and stale scan state.
 
 Your small UI preferences are stored in `chrome.storage` and normally survive a code-folder update.
 
@@ -133,7 +136,7 @@ Enable the browser's developer mode and use its **Load unpacked** command, then 
 | File | Intended audience | Contents |
 | --- | --- | --- |
 | `*-offline.zip` | Normal GitHub users | Ready-to-extract extension folder plus a short install guide. |
-| `*-store.zip` | Chrome Web Store submission/review | Runtime extension files only, with `manifest.json` at ZIP root. |
+| `*-store.zip` | Chrome Web Store submission/review | Runtime files and required license/notice texts, with `manifest.json` at ZIP root. |
 | `*-source.zip` | Developers/auditors | Complete repository source and documentation for that release. |
 
 For ordinary manual installation, use **`*-offline.zip`**.
